@@ -14,7 +14,8 @@
 
         private var fadeSteps:int = 30;
         private var currentStep:int = 0;
-        private var fadingIn:Boolean = true;
+        // Стартуем с флага "выключено", чтобы первый цикл был именно fade-in
+        private var fadingIn:Boolean = false;
         private var _stopped:Boolean = false;
 
         public function FrameFader() {

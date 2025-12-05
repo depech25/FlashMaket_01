@@ -119,11 +119,17 @@ package {
             _retryCount++;
 
             var panel:ApartmentFilterPanel = resolveFilterPanel();
-            if (panel) {
-                trace("[FloorSelector] ? Запускаем повторное применение фильтров после смены кадра (оставшихся применений: " + _applyRemaining + ")");
-                panel.applyApartmentFilters();
-                _applyRemaining--;
-                if (_applyRemaining <= 0) {
+            if (panel && panel.stage) {
+                try {
+                    trace("[FloorSelector] ? Запускаем повторное применение фильтров после смены кадра (оставшихся применений: " + _applyRemaining + ")");
+                    panel.applyApartmentFilters();
+                    _applyRemaining--;
+                    if (_applyRemaining <= 0) {
+                        removeEventListener(Event.ENTER_FRAME, onApplyFiltersNextFrame);
+                        _applyScheduled = false;
+                    }
+                } catch (err:Error) {
+                    trace("[FloorSelector] ! Ошибка при applyApartmentFilters: " + err.message + "\n" + err.getStackTrace());
                     removeEventListener(Event.ENTER_FRAME, onApplyFiltersNextFrame);
                     _applyScheduled = false;
                 }

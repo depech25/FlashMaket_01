@@ -1,6 +1,8 @@
 package {
     import flash.display.MovieClip;
     import flash.events.Event;
+    import flash.utils.setTimeout;
+    import flash.utils.clearTimeout;
 
     public class ApartmentFilterPanel extends MovieClip {
         public var TglBtn_Occupied:ToggleButton;
@@ -16,6 +18,7 @@ package {
         private var _dropdownFilters:Object = null;
         private var _lastAppliedFrame:int = -1;
         private var _buttonsInited:Boolean = false;
+        private var _applyTimeoutId:uint = 0;
 
         public function ApartmentFilterPanel() {
             super();
@@ -106,6 +109,20 @@ package {
         }
 
         public function applyApartmentFilters():void {
+            if (_applyTimeoutId != 0) {
+                clearTimeout(_applyTimeoutId);
+                _applyTimeoutId = 0;
+            }
+            _applyTimeoutId = setTimeout(applyApartmentFiltersInternal, 30);
+        }
+
+        private function applyApartmentFiltersInternal():void {
+            _applyTimeoutId = 0;
+            if (!stage) {
+                trace("[ApartmentFilterPanel] applyApartmentFilters: stage отсутствует, выходим");
+                return;
+            }
+
             var filters:Object = getFilterState();
             trace("[ApartmentFilterPanel] applyApartmentFilters (без слайдера площади)");
             trace("[ApartmentFilterPanel] toggle states -> occupied:" + filters.occupied +
@@ -161,64 +178,71 @@ package {
             trace("[ApartmentFilterPanel] dropdown square: " + (_dropdownFilters && _dropdownFilters.square ? _dropdownFilters.square : "none"));
 
             for each (var button:ApartmentButtonNew in buttons) {
-                var aptNum:String = button.apartmentNumber;
-
-                var status:String = CRMData.getDataById(aptNum, "status");
-                var area:*        = CRMData.getDataById(aptNum, "square");
-                var aptType:*     = CRMData.getDataById(aptNum, "type");
-
-                if (!status || area == null) {
-                    button.visible = false;
-                    trace("[ApartmentFilterPanel] Квартира " + aptNum + " скрыта - нет данных");
+                if (!button) {
                     continue;
                 }
+                try {
+                    var aptNum:String = button.apartmentNumber;
 
-                // Нормализация возможного варианта с кириллической буквой в "Closed"
-                var normalizedStatus:String = status;
-                if (status == "Сlosed for sale") {
-                    normalizedStatus = "Closed for sale";
-                }
+                    var status:String = CRMData.getDataById(aptNum, "status");
+                    var area:*        = CRMData.getDataById(aptNum, "square");
+                    var aptType:*     = CRMData.getDataById(aptNum, "type");
 
-                var show:Boolean = true;
-
-                // Фильтр по статусам (разрешенные значения, если выбраны)
-                if (allowedStatuses && allowedStatuses.indexOf(normalizedStatus) == -1) {
-                    show = false;
-                }
-
-                // Фильтр по типам
-                if (allowedTypes && allowedTypes.indexOf(aptType) == -1) {
-                    show = false;
-                }
-
-                var areaNum:Number = Number(area);
-                if (squareRanges && show) {
-                    var inRange:Boolean = false;
-                    for each (var r:Object in squareRanges) {
-                        if (r && areaNum >= r.min && areaNum <= r.max) {
-                            inRange = true;
-                            break;
-                        }
+                    if (!status || area == null) {
+                        button.visible = false;
+                        trace("[ApartmentFilterPanel] Квартира " + aptNum + " скрыта - нет данных");
+                        continue;
                     }
-                    if (!inRange) {
+
+                    // Нормализация возможного варианта с кириллической буквой в "Closed"
+                    var normalizedStatus:String = status;
+                    if (status == "Сlosed for sale") {
+                        normalizedStatus = "Closed for sale";
+                    }
+
+                    var show:Boolean = true;
+
+                    // Фильтр по статусам (разрешенные значения, если выбраны)
+                    if (allowedStatuses && allowedStatuses.indexOf(normalizedStatus) == -1) {
                         show = false;
                     }
-                }
 
-                button.visible = show;
-
-                if (!show) {
-                    button.stopPulse();
-                    if (GlobalData.activeButton == button) {
-                        GlobalData.activeButton = null;
+                    // Фильтр по типам
+                    if (allowedTypes && allowedTypes.indexOf(aptType) == -1) {
+                        show = false;
                     }
-                }
 
-                trace("[ApartmentFilterPanel] Квартира " + aptNum +
-                      " | статус: " + status +
-                      " | тип: " + aptType +
-                      " | площадь: " + areaNum.toFixed(2) +
-                      " | visible: " + show);
+                    var areaNum:Number = Number(area);
+                    if (squareRanges && show) {
+                        var inRange:Boolean = false;
+                        for each (var r:Object in squareRanges) {
+                            if (r && areaNum >= r.min && areaNum <= r.max) {
+                                inRange = true;
+                                break;
+                            }
+                        }
+                        if (!inRange) {
+                            show = false;
+                        }
+                    }
+
+                    button.visible = show;
+
+                    if (!show) {
+                        button.stopPulse();
+                        if (GlobalData.activeButton == button) {
+                            GlobalData.activeButton = null;
+                        }
+                    }
+
+                    trace("[ApartmentFilterPanel] Квартира " + aptNum +
+                          " | статус: " + status +
+                          " | тип: " + aptType +
+                          " | площадь: " + areaNum.toFixed(2) +
+                          " | visible: " + show);
+                } catch (err:Error) {
+                    trace("[ApartmentFilterPanel] ! Ошибка при обработке кнопки: " + err.message + "\n" + err.getStackTrace());
+                }
             }
         }
     }
