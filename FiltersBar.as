@@ -26,7 +26,7 @@ package  {
 
         private function onAddedToStage(e:Event):void {
             removeEventListener(Event.ADDED_TO_STAGE, onAddedToStage);
-            forwardFilters();
+            forwardFilters(false);
         }
 
         private function onStateChanged(e:Event):void {
@@ -34,7 +34,7 @@ package  {
         }
 
         private function onDropDownFilterChanged(e:Event):void {
-            forwardFilters();
+            forwardFilters(true);
         }
 
         private function layout():void {
@@ -48,7 +48,7 @@ package  {
             }
         }
 
-        private function forwardFilters():void {
+        private function forwardFilters(userInitiated:Boolean = false):void {
             if (!filterPanel) {
                 // Если FiltersBar вложен внутрь ApartmentFilterPanel
                 if (parent is ApartmentFilterPanel) {
@@ -67,7 +67,7 @@ package  {
             var filters:Object = collectFilters();
 
             if (filterPanel) {
-                filterPanel.applyDropdownFilters(filters);
+                filterPanel.applyDropdownFilters(filters, userInitiated);
             } else {
                 trace("[FiltersBar] Нет ссылки на ApartmentFilterPanel");
             }
@@ -76,7 +76,7 @@ package  {
         // Если нужно задать ссылку вручную из кода на сцене
         public function setFilterPanel(panel:ApartmentFilterPanel):void {
             filterPanel = panel;
-            forwardFilters();
+            forwardFilters(false);
         }
 
         private function collectFilters():Object {

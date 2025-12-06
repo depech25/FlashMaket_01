@@ -3,6 +3,8 @@ package {
     import flash.events.Event;
     import flash.utils.setTimeout;
     import flash.utils.clearTimeout;
+    import EspControl;
+    import LedController;
 
     public class ApartmentFilterPanel extends MovieClip {
         public var TglBtn_Occupied:ToggleButton;
@@ -19,6 +21,8 @@ package {
         private var _lastAppliedFrame:int = -1;
         private var _buttonsInited:Boolean = false;
         private var _applyTimeoutId:uint = 0;
+        private var _led:LedController = new LedController(new EspControl("http://192.168.1.100"));
+        private var _lightingAllowed:Boolean = false; // разрешать ли отправку подсветки
 
         public function ApartmentFilterPanel() {
             super();
@@ -58,6 +62,7 @@ package {
             TglBtn_Available.addEventListener(ToggleButton.TOGGLE_CHANGED, onFilterChanged);
 
             _buttonsInited = true;
+            _lightingAllowed = false; // при входе в кадр подсветку не шлём до ручного изменения
             // Применяем фильтр сразу после инициализации, чтобы состояние отразилось без клика
             applyApartmentFilters();
         }
@@ -78,6 +83,7 @@ package {
                 }
 
                 if (_buttonsInited) {
+                    _lightingAllowed = false; // смена кадра: фильтруем, но подсветку шлём только после ручного изменения
                     applyApartmentFilters();
                 }
             }
@@ -91,6 +97,8 @@ package {
             savedFilterState.reserved  = TglBtn_Reserved.state;
             savedFilterState.available = TglBtn_Available.state;
 
+            // Ручное изменение — разрешаем отправку подсветки
+            _lightingAllowed = true;
             applyApartmentFilters();
         }
 
@@ -102,9 +110,18 @@ package {
             };
         }
 
+        // Вызывается снаружи (например, при смене кадра), чтобы не слать подсветку до ручного изменения
+        public function suppressLightingUntilUserChange():void {
+            _lightingAllowed = false;
+        }
+
         // Вызывается FiltersBar при изменении любого ToggleButton в DropDown
-        public function applyDropdownFilters(filters:Object):void {
+        public function applyDropdownFilters(filters:Object, userInitiated:Boolean = false):void {
             _dropdownFilters = filters;
+            // Ручное изменение - разрешаем отправку подсветки
+            if (userInitiated) {
+                _lightingAllowed = true;
+            }
             applyApartmentFilters();
         }
 
@@ -243,6 +260,11 @@ package {
                 } catch (err:Error) {
                     trace("[ApartmentFilterPanel] ! Ошибка при обработке кнопки: " + err.message + "\n" + err.getStackTrace());
                 }
+            }
+
+            // После применения фильтров подсвечиваем только видимые квартиры одним батчем
+            if (_led && _lightingAllowed) {
+                _led.lightUpFilteredVisible();
             }
         }
     }
