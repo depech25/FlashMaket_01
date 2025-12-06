@@ -224,11 +224,15 @@
 
                 var payload:Object = {
                     cmd: "rooms_on",
-                    rooms: group.rooms,
+                    rooms: [],
                     color: group.color,
                     brightness: group.brightness,
                     effect: effect
                 };
+
+                for each (var roomId:int in group.rooms) {
+                    payload.rooms.push({room: roomId});
+                }
 
                 var isLast:Boolean = (i == keys.length - 1);
                 sendJson(payload, isLast ? onComplete : null, onError);
@@ -247,21 +251,119 @@
                 return;
             }
 
-            var payload:Object = {};
+            var payload:Object = {
+                cmd: "rooms_on",
+                rooms: []
+            };
             for each (var aptId:String in apartmentIds) {
                 var status:String = CRMData.getDataById(aptId, "status");
                 var brightness:int = getBrightness(aptId);
                 var color:Array = getColorByStatus(status);
 
-                payload[aptId] = {
-                    cmd: "room_on",
+                payload.rooms.push({
+                    room: int(aptId),
                     effect: effect,
                     color: color,
                     brightness: brightness
-                };
+                });
             }
 
             log("Turn ON rooms batch: " + apartmentIds.join(","));
+            sendJson(payload, onComplete, onError);
+        }
+
+        //-----------------------------
+        // Turn OFF one apartment
+        //-----------------------------
+        public function turnOffApartment(apartmentId:String,
+                                          effect:String="instant",
+                                          onComplete:Function=null,
+                                          onError:Function=null):void {
+
+            var ledId:int = CRMData.getDataById(apartmentId, "LedID");
+            log("Turn OFF apartment " + apartmentId + " -> LedID: " + ledId + ", effect: " + effect);
+
+            if (!ledId) {
+                log("ERROR: LedID not found for " + apartmentId);
+                return;
+            }
+
+            var payload:Object = {
+                cmd: "room_off",
+                room: int(apartmentId),
+                effect: effect
+            };
+
+            sendJson(payload, onComplete, onError);
+        }
+
+        //-----------------------------
+        // Turn OFF multiple rooms
+        //-----------------------------
+        public function turnOffRooms(apartmentIds:Array,
+                                     effect:String="instant",
+                                     onComplete:Function=null,
+                                     onError:Function=null):void {
+            if (!apartmentIds || apartmentIds.length == 0) {
+                log("turnOffRooms: empty apartmentIds");
+                return;
+            }
+
+            var rooms:Array = [];
+            for each (var aptId:String in apartmentIds) {
+                rooms.push(int(aptId));
+            }
+
+            log("Turn OFF rooms: " + rooms.join(", "));
+
+            var payload:Object = {
+                cmd: "rooms_off",
+                rooms: rooms,
+                effect: effect
+            };
+
+            sendJson(payload, onComplete, onError);
+        }
+
+        //-----------------------------
+        // Turn ON entire floor with single color
+        //-----------------------------
+        public function turnOnWholeFloor(floor:int,
+                                         color:Array,
+                                         brightness:int = 255,
+                                         effect:String="instant",
+                                         onComplete:Function=null,
+                                         onError:Function=null):void {
+
+            log("Turn ON floor " + floor + " with color=" + color + " brightness=" + brightness + " effect=" + effect);
+
+            var payload:Object = {
+                cmd: "floor_on",
+                floor: floor,
+                color: color,
+                brightness: brightness,
+                effect: effect
+            };
+
+            sendJson(payload, onComplete, onError);
+        }
+
+        //-----------------------------
+        // Turn OFF entire floor
+        //-----------------------------
+        public function turnOffFloor(floor:int,
+                                     effect:String="instant",
+                                     onComplete:Function=null,
+                                     onError:Function=null):void {
+
+            log("Turn OFF floor " + floor + " effect=" + effect);
+
+            var payload:Object = {
+                cmd: "floor_off",
+                floor: floor,
+                effect: effect
+            };
+
             sendJson(payload, onComplete, onError);
         }
 
@@ -327,6 +429,33 @@
                 mode: "off"
             };
 
+            sendJson(payload, onComplete, onError);
+        }
+
+        //-----------------------------
+        // Service commands
+        //-----------------------------
+        public function ping(onComplete:Function=null,
+                             onError:Function=null):void {
+            log("Ping controller");
+
+            var payload:Object = {cmd: "ping"};
+            sendJson(payload, onComplete, onError);
+        }
+
+        public function getStatus(onComplete:Function=null,
+                                  onError:Function=null):void {
+            log("Request controller status");
+
+            var payload:Object = {cmd: "status"};
+            sendJson(payload, onComplete, onError);
+        }
+
+        public function reloadMapping(onComplete:Function=null,
+                                      onError:Function=null):void {
+            log("Reload mapping files");
+
+            var payload:Object = {cmd: "reload_mapping"};
             sendJson(payload, onComplete, onError);
         }
     }
