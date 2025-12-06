@@ -28,6 +28,7 @@
         private var labelBg:Sprite;
 
         private var polyPoints:Array = null; // координаты многоугольника
+        private var lastSelectedFloor:int = -1;
 
         public function ApartmentButtonNew() {
             super();
@@ -213,10 +214,12 @@
             GlobalData.activeButtonName = apartmentNumber;  // <-- Сохраняем имя кнопки отдельно!
 
             led.lightUpRoomByStatus(apartmentNumber);
+            lastSelectedFloor = extractFloorNumber(apartmentNumber);
 
             trace(GlobalData.activeButtonName);
 
             if (popup) {
+                ensurePopupListener(popup);
                 if (popup.getCurrentApartmentNumber() == apartmentNumber)
                     return;
 
@@ -229,6 +232,7 @@
                     popup.y = (stage.stageHeight - popup.height) / 2;
                     GlobalData.popup = popup;
 
+                    ensurePopupListener(popup);
                     popup.showApartmentInfo(apartmentNumber);
                 } else {
                     trace("[ApartmentButtonNew] Ошибка: stage отсутствует");
@@ -265,6 +269,31 @@
                 this.alpha = pulseMaxAlpha;
                 pulseDirection = -1;
             }
+        }
+
+        // --------------------------------------------------------------------
+        // Popup handling
+        // --------------------------------------------------------------------
+
+        private function ensurePopupListener(popup:ApartmentPopup):void {
+            if (!popup.hasEventListener(ApartmentPopup.CLOSED)) {
+                popup.addEventListener(ApartmentPopup.CLOSED, onPopupClosed, false, 0, true);
+            }
+        }
+
+        private function onPopupClosed(e:Event):void {
+            led.lightUpFilteredVisible();
+        }
+
+        private function extractFloorNumber(apartmentId:String):int {
+            if (!apartmentId || apartmentId.length == 0) return -1;
+            // В ID квартиры первым символом идёт этаж (у нас этажи 2-8), остальное — номер
+            var firstChar:String = apartmentId.charAt(0);
+            var n:int = parseInt(firstChar);
+            if (isNaN(n)) {
+                return -1;
+            }
+            return n;
         }
     }
 }

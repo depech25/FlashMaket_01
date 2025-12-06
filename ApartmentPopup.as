@@ -11,6 +11,7 @@
     import flash.events.IOErrorEvent;
 
     public class ApartmentPopup extends MovieClip {
+        public static const CLOSED:String = "ApartmentPopupClosed";
         public var tfNumber:TextField;
         public var tfType:TextField;
         public var tfStatus:TextField;
@@ -64,6 +65,8 @@
         }
 
         private function closePopup():void {
+            // Сообщаем подписчикам, что попап закрывается (bubbles=true для ловли на сцене)
+            dispatchEvent(new Event(CLOSED, true));
             if (darkBg && darkBg.parent) darkBg.parent.removeChild(darkBg);
             if (parent) parent.removeChild(this);
         }
