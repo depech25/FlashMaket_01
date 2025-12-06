@@ -122,6 +122,18 @@
         }
 
         //-----------------------------
+        // Determine room identifier
+        //-----------------------------
+        private function getRoomId(apartmentId:String):int {
+            var roomValue:* = CRMData.getDataById(apartmentId, "room");
+            if (roomValue !== null && roomValue !== undefined && !isNaN(Number(roomValue))) {
+                return int(roomValue);
+            }
+
+            return int(apartmentId);
+        }
+
+        //-----------------------------
         // Turn ON one apartment (status-based color)
         //-----------------------------
         public function turnOnApartment(apartmentId:String,
@@ -129,20 +141,15 @@
                                         onComplete:Function=null,
                                         onError:Function=null):void {
 
-            var ledId:int = CRMData.getDataById(apartmentId, "LedID");
+            var roomId:int = getRoomId(apartmentId);
             var status:String = CRMData.getDataById(apartmentId, "status");
             var brightness:int = getBrightness(apartmentId);
 
-            log("Turn ON apartment " + apartmentId + " -> LedID: " + ledId + ", status: " + status + ", brightness: " + brightness + ", effect: " + effect);
-
-            if (!ledId) {
-                log("ERROR: LedID not found for " + apartmentId);
-                return;
-            }
+            log("Turn ON apartment " + apartmentId + " -> room: " + roomId + ", status: " + status + ", brightness: " + brightness + ", effect: " + effect);
 
             var payload:Object = {
                 cmd: "room_on",
-                room: int(apartmentId),
+                room: roomId,
                 color: getColorByStatus(status),
                 brightness: brightness,
                 effect: effect
@@ -161,7 +168,7 @@
                                                  onComplete:Function=null,
                                                  onError:Function=null):void {
 
-            var ledId:int = CRMData.getDataById(apartmentId, "LedID");
+            var roomId:int = getRoomId(apartmentId);
             var appliedBrightness:int = brightness;
 
             // If brightness not provided, fall back to CRM value
@@ -171,16 +178,11 @@
             if (appliedBrightness < 0) appliedBrightness = 0;
             if (appliedBrightness > 255) appliedBrightness = 255;
 
-            log("Turn ON apartment custom color " + apartmentId + " -> LedID: " + ledId + ", brightness: " + appliedBrightness + ", effect: " + effect);
-
-            if (!ledId) {
-                log("ERROR: LedID not found for " + apartmentId);
-                return;
-            }
+            log("Turn ON apartment custom color " + apartmentId + " -> room: " + roomId + ", brightness: " + appliedBrightness + ", effect: " + effect);
 
             var payload:Object = {
                 cmd: "room_on",
-                room: int(apartmentId),
+                room: roomId,
                 color: color,
                 brightness: appliedBrightness,
                 effect: effect
@@ -280,17 +282,12 @@
                                           onComplete:Function=null,
                                           onError:Function=null):void {
 
-            var ledId:int = CRMData.getDataById(apartmentId, "LedID");
-            log("Turn OFF apartment " + apartmentId + " -> LedID: " + ledId + ", effect: " + effect);
-
-            if (!ledId) {
-                log("ERROR: LedID not found for " + apartmentId);
-                return;
-            }
+            var roomId:int = getRoomId(apartmentId);
+            log("Turn OFF apartment " + apartmentId + " -> room: " + roomId + ", effect: " + effect);
 
             var payload:Object = {
                 cmd: "room_off",
-                room: int(apartmentId),
+                room: roomId,
                 effect: effect
             };
 
