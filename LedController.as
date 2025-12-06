@@ -124,6 +124,32 @@
         }
 
         //----------------------------------------------
+        // Включить все текущие видимые (отфильтрованные) квартиры одним JSON
+        //----------------------------------------------
+        public function lightUpFilteredVisible():void {
+            var buttons:Array = GlobalData.apartmentButtons;
+            if (!buttons || buttons.length == 0) {
+                trace("[LED] Нет кнопок квартир для подсветки отфильтрованных");
+                return;
+            }
+
+            var ids:Array = [];
+            for each (var btn:ApartmentButtonNew in buttons) {
+                if (btn && btn.visible && btn.apartmentNumber) {
+                    ids.push(btn.apartmentNumber);
+                }
+            }
+
+            if (ids.length == 0) {
+                trace("[LED] Нет видимых (отфильтрованных) квартир для подсветки");
+                return;
+            }
+
+            trace("[LED] Подсветка видимых квартир → " + ids.join(", "));
+            esp.turnOnRoomsBatch(ids);
+        }
+
+        //----------------------------------------------
         // Включить ВСЕ определённым цветом (HEX)
         //----------------------------------------------
         public function lightUpAll(colorHex:String):void {

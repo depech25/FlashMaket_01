@@ -122,6 +122,7 @@ package {
             if (panel && panel.stage) {
                 try {
                     trace("[FloorSelector] ? Запускаем повторное применение фильтров после смены кадра (оставшихся применений: " + _applyRemaining + ")");
+                    panel.suppressLightingUntilUserChange(); // при автоприменении подсветку не отправляем
                     panel.applyApartmentFilters();
                     _applyRemaining--;
                     if (_applyRemaining <= 0) {

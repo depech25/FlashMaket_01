@@ -199,34 +199,70 @@
 
             log("Turn ON floor. Apartments: " + apartmentIds.join(", "));
 
-            var total:int = apartmentIds.length;
-            var index:int = 0;
-
+            var groups:Object = {};
             for each (var aptId:String in apartmentIds) {
-
-                var ledId:int = CRMData.getDataById(aptId, "LedID");
                 var status:String = CRMData.getDataById(aptId, "status");
                 var brightness:int = getBrightness(aptId);
-
-                log("  apt " + aptId + " -> LedID: " + ledId + ", status: " + status + ", brightness: " + brightness + ", effect: " + effect);
-
-                if (!ledId) {
-                    index++;
-                    continue;
+                var color:Array = getColorByStatus(status);
+                var key:String = color.join(",") + "|" + brightness.toString();
+                if (!groups[key]) {
+                    groups[key] = {rooms: [], color: color, brightness: brightness};
                 }
+                groups[key].rooms.push(int(aptId));
+            }
 
-                var isLast:Boolean = (index == total - 1);
+            var keys:Array = [];
+            for (var k:String in groups) {
+                keys.push(k);
+            }
+
+            for (var i:int = 0; i < keys.length; i++) {
+                var groupKey:String = keys[i];
+                var group:Object = groups[groupKey];
+
+                log("  group color=" + group.color + " brightness=" + group.brightness + " rooms=" + group.rooms.join(","));
+
                 var payload:Object = {
-                    cmd: "room_on",
-                    room: int(aptId),
-                    color: getColorByStatus(status),
-                    brightness: brightness,
+                    cmd: "rooms_on",
+                    rooms: group.rooms,
+                    color: group.color,
+                    brightness: group.brightness,
                     effect: effect
                 };
 
+                var isLast:Boolean = (i == keys.length - 1);
                 sendJson(payload, isLast ? onComplete : null, onError);
-                index++;
             }
+        }
+
+        //-----------------------------
+        // Turn ON multiple rooms in one JSON (batch structure)
+        //-----------------------------
+        public function turnOnRoomsBatch(apartmentIds:Array,
+                                         effect:String="instant",
+                                         onComplete:Function=null,
+                                         onError:Function=null):void {
+            if (!apartmentIds || apartmentIds.length == 0) {
+                log("turnOnRoomsBatch: empty apartmentIds");
+                return;
+            }
+
+            var payload:Object = {};
+            for each (var aptId:String in apartmentIds) {
+                var status:String = CRMData.getDataById(aptId, "status");
+                var brightness:int = getBrightness(aptId);
+                var color:Array = getColorByStatus(status);
+
+                payload[aptId] = {
+                    cmd: "room_on",
+                    effect: effect,
+                    color: color,
+                    brightness: brightness
+                };
+            }
+
+            log("Turn ON rooms batch: " + apartmentIds.join(","));
+            sendJson(payload, onComplete, onError);
         }
 
         //-----------------------------
